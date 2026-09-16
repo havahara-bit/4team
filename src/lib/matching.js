@@ -1,4 +1,7 @@
 import { SPECIAL_LABEL } from './notices';
+import INCOME_CRITERIA from '../data/income-criteria.json';
+
+export { INCOME_CRITERIA };
 
 /**
  * 기존 내집매칭(asis) HTML 의 "내 조건 입력 → 자격 확인" 로직을 옮겨 왔다.
@@ -14,11 +17,39 @@ import { SPECIAL_LABEL } from './notices';
  * `uncertain` 으로 표시해서 "확인 필요"로 보여 준다.
  */
 
-/** 가구원수별 도시근로자 월평균소득 100% 기준 (2026년 예시값, 단위: 만원) */
-export const INCOME_BASELINE = { 1: 299, 2: 452, 3: 573, 4: 649, 5: 646, 6: 686, 7: 722 };
+/**
+ * 가구원수별 도시근로자 가구당 월평균소득 기준.
+ * 공고문에 실린 표를 그대로 옮긴 src/data/income-criteria.json 이 단일 출처다.
+ *
+ * 표에 찍힌 1·2인 가구 금액에는 +20%p·+10%p 가산이 이미 반영돼 있다.
+ * 반면 공고의 incomeLimit 은 160·70 같은 순수 퍼센트라서, 가산을 기준액에 섞으면
+ * 이중 계산이 된다. 그래서 여기서는 가산을 걷어낸 100% 기준액을 만들고,
+ * 가산은 incomeLimitFor() 로 한도 쪽에 붙인다 — 실제 제도와 같은 순서다.
+ */
+const TIER_100 = INCOME_CRITERIA.tiers.find((t) => t.percent === 100);
 
+/** 가산이 걷힌 순수 100% 기준액 (원). 6인 이상은 5인 금액에 1인당 평균금액을 더한다. */
+function baselineWon(household) {
+  const n = Math.max(1, Math.floor(Number(household) || 1));
+  const table = TIER_100.amountByHouseholdSize;
+  const printed = n <= 5 ? table[String(n)] : table['5'] + TIER_100.perPersonAddFrom6 * (n - 5);
+  return printed / (1 + incomeAllowance(n) / 100);
+}
+
+/** 화면·판정이 만원 단위를 쓰므로 만원으로 환산해 돌려준다 */
 export function baselineIncome(household) {
-  return INCOME_BASELINE[Math.min(Math.max(Number(household) || 1, 1), 7)];
+  return Math.round(baselineWon(household) / 10_000);
+}
+
+/** 1인 가구 +20%p, 2인 가구 +10%p — 소득기준 자체에 가산된다 */
+export function incomeAllowance(household) {
+  const n = Math.max(1, Math.floor(Number(household) || 1));
+  return INCOME_CRITERIA.householdAdjustment[String(n)]?.addPercentPoint ?? 0;
+}
+
+/** 공고에 적힌 소득기준(%)에 가구원수 가산을 얹은 실제 한도 */
+export function incomeLimitFor(household, limitPercent) {
+  return limitPercent + incomeAllowance(household);
 }
 
 export const MARITAL_OPTIONS = [
@@ -187,6 +218,7 @@ export function evaluate(notice, profile) {
   const isPublic = isPublicSupply(notice);
   const assets = totalAssets(profile);
   const region = localPriority(profile, notice);
+  const allowance = incomeAllowance(profile.household);
 
   // 공고 단위 조건 — 통장 가입기간·신청 연령은 유형과 무관하게 먼저 막힌다.
   if (notice.minSubMonths && (Number(profile.subMonths) || 0) < notice.minSubMonths) {
@@ -237,8 +269,10 @@ export function evaluate(notice, profile) {
     }
 
     // 소득 기준이 적혀 있는 유형만 숫자로 검사한다. null 은 "공고문 확인".
-    if (sp.incomeLimit != null && pct > sp.incomeLimit) {
-      missed.push({ type: sp.type, label, reason: `소득 ${pct}% > 기준 ${sp.incomeLimit}%` });
+    // 한도에는 1·2인 가구 가산(+20%p·+10%p)을 얹는다.
+    const limit = sp.incomeLimit != null ? incomeLimitFor(profile.household, sp.incomeLimit) : null;
+    if (limit != null && pct > limit) {
+      missed.push({ type: sp.type, label, reason: `소득 ${pct}% > 기준 ${limit}%` });
       continue;
     }
 
@@ -248,7 +282,7 @@ export function evaluate(notice, profile) {
         ? '기관 추천 대상 여부는 해당 기관에 확인 필요'
         : sp.incomeLimit == null
           ? '소득 기준 미기재 — 공고문 확인 필요'
-          : `소득 ${pct}% ≤ 기준 ${sp.incomeLimit}%`;
+          : `소득 ${pct}% ≤ 기준 ${limit}%${allowance ? ` (${profile.household}인 가구 +${allowance}%p 가산)` : ''}`;
 
     matched.push({ type: sp.type, label, note, uncertain });
   }

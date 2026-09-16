@@ -4,6 +4,7 @@ import {
   ASSET_LIMIT,
   baselineIncome,
   DEFAULT_PROFILE,
+  incomeAllowance,
   incomePercent,
   isMarried,
   MARITAL_OPTIONS,
@@ -16,6 +17,8 @@ import { NOTICES } from '../lib/notices';
 
 const pct = computed(() => incomePercent(profile));
 const base = computed(() => baselineIncome(profile.household));
+/** 1인 +20%p, 2인 +10%p — 기준액이 아니라 한도에 붙는다 */
+const allowance = computed(() => incomeAllowance(profile.household));
 
 /** 자녀 수는 기혼(예비 포함)일 때만 묻는다 */
 const married = computed(() => isMarried(profile));
@@ -143,7 +146,10 @@ function reset() {
         </div>
         <p class="field__hint">
           세전 · 배우자 포함 · {{ profile.household }}인 기준 {{ base.toLocaleString() }}만원 대비
-          <b :class="pct > 160 ? 'is-over' : 'is-ok'">{{ pct }}%</b>
+          <b :class="pct > 160 + allowance ? 'is-over' : 'is-ok'">{{ pct }}%</b>
+          <template v-if="allowance">
+            · {{ profile.household }}인 가구는 소득기준에 <b>+{{ allowance }}%p</b> 가산
+          </template>
         </p>
         <button type="button" class="linkish mp-calc__toggle" :aria-expanded="calcOpen" @click="calcOpen = !calcOpen">
           {{ calcOpen ? '계산기 닫기' : '연소득으로 계산하기' }}

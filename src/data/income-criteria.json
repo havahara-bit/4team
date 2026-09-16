@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "title": "가구원수별 가구당 월평균소득 기준",
+  "basis": "전년도 도시근로자 가구원수별 가구당 월평균소득",
+  "unit": "원",
+  "period": "월",
+  "householdAdjustment": {
+    "note": "1인·2인 가구는 기준금액에 각각 20%p·10%p 가산된 금액이 아래 표에 이미 반영되어 있다. 별도로 다시 가산하지 말 것.",
+    "1": { "addPercentPoint": 20 },
+    "2": { "addPercentPoint": 10 }
+  },
+  "tiers": [
+    {
+      "percent": 100,
+      "groups": [
+        {
+          "type": "공통",
+          "note": "청년계층은 세대원인 경우 본인만 해당",
+          "conditions": []
+        }
+      ],
+      "amountByHouseholdSize": {
+        "1": 4576036,
+        "2": 6452897,
+        "3": 8168429,
+        "4": 8802202,
+        "5": 9326985
+      },
+      "perPersonAddFrom6": 579278
+    },
+    {
+      "percent": 110,
+      "groups": [
+        {
+          "type": "공통",
+          "note": null,
+          "conditions": [
+            { "childrenBornOnOrAfter": "2023-03-28", "count": 1, "comparator": "eq" }
+          ]
+        }
+      ],
+      "amountByHouseholdSize": {
+        "1": null,
+        "2": 7039524,
+        "3": 8985272,
+        "4": 9682422,
+        "5": 10259684
+      },
+      "perPersonAddFrom6": 637205
+    },
+    {
+      "percent": 120,
+      "groups": [
+        {
+          "type": "공통",
+          "note": "아래 두 경우 중 하나에 해당",
+          "anyOf": [
+            {
+              "label": "2023년 3월 28일 이후 출생 자녀 1명 + 2023년 3월 27일 이전 출생 자녀 1명 이상",
+              "conditions": [
+                { "childrenBornOnOrAfter": "2023-03-28", "count": 1, "comparator": "eq" },
+                { "childrenBornOnOrBefore": "2023-03-27", "count": 1, "comparator": "gte" }
+              ]
+            },
+            {
+              "label": "2023년 3월 28일 이후 출생 자녀 2명 이상",
+              "conditions": [
+                { "childrenBornOnOrAfter": "2023-03-28", "count": 2, "comparator": "gte" }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "신혼부부 계층",
+          "note": "예비 신혼부부 포함",
+          "conditions": [{ "dualIncome": true }]
+        }
+      ],
+      "amountByHouseholdSize": {
+        "1": null,
+        "2": 7626151,
+        "3": 9802115,
+        "4": 10562642,
+        "5": 11192382
+      },
+      "perPersonAddFrom6": 695133
+    },
+    {
+      "percent": 130,
+      "groups": [
+        {
+          "type": "신혼부부 계층",
+          "note": "맞벌이인 동시에 아래 조건 충족",
+          "conditions": [
+            { "dualIncome": true },
+            { "childrenBornOnOrAfter": "2023-03-28", "count": 1, "comparator": "eq" }
+          ]
+        }
+      ],
+      "amountByHouseholdSize": {
+        "1": null,
+        "2": null,
+        "3": 10618958,
+        "4": 11442863,
+        "5": 12125081
+      },
+      "perPersonAddFrom6": 753061
+    },
+    {
+      "percent": 140,
+      "groups": [
+        {
+          "type": "신혼부부 계층",
+          "note": "맞벌이인 동시에 아래 두 경우 중 하나에 해당",
+          "anyOf": [
+            {
+              "label": "맞벌이 + 2023년 3월 28일 이후 출생 자녀 2명 이상",
+              "conditions": [
+                { "dualIncome": true },
+                { "childrenBornOnOrAfter": "2023-03-28", "count": 2, "comparator": "gte" }
+              ]
+            },
+            {
+              "label": "맞벌이 + 2023년 3월 28일 이후 출생 자녀 1명 + 2023년 3월 27일 이전 출생 자녀 1명 이상",
+              "conditions": [
+                { "dualIncome": true },
+                { "childrenBornOnOrAfter": "2023-03-28", "count": 1, "comparator": "eq" },
+                { "childrenBornOnOrBefore": "2023-03-27", "count": 1, "comparator": "gte" }
+              ]
+            }
+          ]
+        }
+      ],
+      "amountByHouseholdSize": {
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": 12323083,
+        "5": 13057779
+      },
+      "perPersonAddFrom6": 810989
+    }
+  ],
+  "rules": {
+    "householdSizeFrom6": {
+      "formula": "amountByHouseholdSize['5'] + perPersonAddFrom6 * (householdSize - 5)",
+      "note": "통계청이 발표한 5인 가구 기준소득에 구간별 1인당 평균금액을 합산하여 산정한다."
+    },
+    "householdSizeCounting": "무주택세대구성원 전원을 포함하여 산정하며, 태아도 가구원수에 포함한다.",
+    "nullMeaning": "amountByHouseholdSize 의 null 은 원문 표의 '–' 로, 해당 가구원수에는 그 구간이 적용되지 않는다는 뜻이다."
+  },
+  "footnotes": [
+    "위 표의 월평균 소득기준은 전년도 도시근로자 가구원수별 가구당 월평균소득 금액으로, 1인 가구는 기준금액에 20%p 가산, 2인 가구는 10%p 가산된 금액이 표에 직접 기입되어 있습니다.",
+    "6인 이상 가구는 통계청이 발표한 5인 가구 기준소득에 가구원수별 가구당 월평균소득의 100퍼센트는 1인당 평균금액(579,278원), 110퍼센트는 1인당 평균금액(637,205원), 120퍼센트는 1인당 평균금액(695,133원), 130퍼센트는 1인당 평균금액(753,061원), 140퍼센트는 1인당 평균금액(810,989원)을 합산하여 산정합니다.",
+    "가구원수는 무주택세대구성원 전원을 포함하여 산정합니다. (태아도 가구원수에 포함)"
+  ]
+}
